@@ -1,25 +1,15 @@
 import numpy as np
 import pandas as pd
 
-# Creamos 2 días de datos cada 15 min (96 intervalos por día, total 192)
-index = pd.date_range("2024-01-01", periods=192, freq="15min")
-df = pd.DataFrame({"consumo_kw": np.random.uniform(1, 10, size=192)}, index=index)
+data = [10.5, -2.0, 15.8, None, 22.1, -5.0, 18.0]
+df = pd.DataFrame(data, columns=["Valores"])
 
-# 1. Pasar de 15 min a 1 hora (Suma)
-consumo_horario = df.resample("h").sum()
+# 1. Calculamos la media de los valores que NO son nulos
+media_valida = df["Valores"].mean()
 
-# 2. Obtener el máximo consumo de cada día
-pico_diario = df.resample("D").max()
+# 2. Aplicamos la limpieza en cadena (Method Chaining)
+# Primero quitamos negativos con clip, luego llenamos nulos con la media calculada
+df["lectura_limpia"] = df["Valores"].clip(lower=0).fillna(media_valida)
 
-# 3. Operación vectorizada: Supongamos un precio fijo (sin bucles)
-precio_kwh = 0.15
-df["coste_estimado"] = df["consumo_kw"] * precio_kwh
-
-# 4. Filtrar datos: Consumos mayores a 5 kW
-consumo_alto = df[df["consumo_kw"] > 5]
-print("Consumo horario (suma):")
-print(consumo_horario.head())
-print("\nPico diario (máximo):")
-print(pico_diario.head())
-print("\nConsumo alto (>5 kW):")
-print(consumo_alto.head())
+print(f"Media utilizada para nulos: {media_valida:.2f}")
+print(df)
