@@ -66,6 +66,50 @@ async def crear_sistema_medicion():
         )
 
 
-# Ejecutar el bucle de eventos asíncrono
+async def calcular_consumo_total(uid_cliente: str):
+    pipeline = [
+        # Paso 1: Filtrar
+        {"$match": {"cliente_id": uid_cliente}},
+        # Paso 2: Agrupar
+        {
+            "$group": {
+                "_id": "$cliente_id",  # Por qué campo agrupamos
+                "consumo_total": {
+                    "$sum": "$valor"
+                },  # Operación de suma sobre el campo 'valor'
+                "lecturas_contadas": {"$sum": 1},  # Contador de registros
+                "pico_maximo": {"$max": "$valor"},
+            }
+        },
+        # Paso 3: Formatear
+        {
+            "$project": {
+                "_id": 0,  # No mostrar el ID interno de Mongo
+                "cliente": "$_id",
+                "consumo_total": 1,
+                "pico_maximo": 1,
+                "promedio": {"$divide": ["$consumo_total", "$lecturas_contadas"]},
+            }
+        },
+    ]
+
+    cursor = db.lecturas.aggregate(pipeline)
+    resultado = await cursor.to_list(length=1)
+
+    if resultado:
+        print("\nReporte de Consumo desde MongoDB:")
+        print(resultado[0])
+
+
+async def main():
+    # Ejecutamos ambas tareas dentro del mismo bucle
+    await crear_sistema_medicion()
+    await calcular_consumo_total("CTR-001")
+
+    # Es buena práctica cerrar la conexión al terminar scripts de prueba
+    client.close()
+
+
 if __name__ == "__main__":
-    asyncio.run(crear_sistema_medicion())
+    # Solo llamamos a asyncio.run una vez
+    asyncio.run(main())
