@@ -1,12 +1,12 @@
-# app/main.py
+# backend/main.py
 
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import lecturas
-from app.db.mongodb import close_mongo_connection, connect_to_mongo
+from backend.api.v1.endpoints import lecturas
+from backend.db.mongodb import close_mongo_connection, connect_to_mongo
 
 
 # --- GESTIÓN DEL CICLO DE VIDA (LIFESPAN) ---
