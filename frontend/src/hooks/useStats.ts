@@ -25,6 +25,7 @@ export const useStats = () => {
         try {
             // Petición GET tipada para asegurar la integridad de los datos de analítica
             const response = await api.get<StatsResponse>(`/stats/${cups}`);
+            console.log("Respuesta completa de la API:", response.data);
             setData(response.data);
 
         } catch (err: any) {

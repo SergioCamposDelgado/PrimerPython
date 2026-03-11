@@ -1,52 +1,89 @@
-// src/App.tsx
-import { Container, Row, Col, Navbar } from 'react-bootstrap';
-import FileUpload from './components/FileUpload';
-import StatsDashboard from './components/StatsDashboard';
+import { useState, useCallback, useEffect } from 'react';
+import { Container, Row, Col, Navbar, Stack, Button } from 'react-bootstrap';
+import { ImportadorCSV } from './components/ImportadorCSV';
+import { StatsSearch } from './components/StatsSearch';
+import { TablaLecturas } from './components/TablaLecturas';
 
-/**
- * Componente Raíz: App
- * * Actúa como el orquestador visual de la aplicación. Su responsabilidad es:
- * 1. Definir la estructura global (Layout).
- * 2. Proporcionar un contexto visual consistente (Navbar y fondos).
- * 3. Gestionar la responsividad mediante el sistema de rejilla (Grid System).
- */
 function App() {
-  return (
-    // bg-light y min-vh-100 aseguran un fondo gris tenue que cubre toda la pantalla
-    <div className="bg-light min-vh-100">
+  const [refreshKey, setRefreshKey] = useState(0);
 
-      {/* Navegación Superior: Aporta identidad visual y sensación de App profesional */}
-      <Navbar bg="white" className="shadow-sm mb-4 border-bottom">
+  // Estado para el tema, persistido en localStorage
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.setAttribute('data-bs-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.setAttribute('data-bs-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  const handleUploadSuccess = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  return (
+    // Eliminamos 'bg-light' y 'bg-white' fijos para que Bootstrap use sus colores de tema
+    <div className="min-vh-100 d-flex flex-column bg-body-tertiary">
+
+      {/* Navegación Superior */}
+      <Navbar bg="body" className="shadow-sm mb-4 border-bottom">
         <Container>
-          <Navbar.Brand className="fw-bold text-primary">
-            {/* Uso de iconos de Bootstrap (bi) para mejorar la jerarquía visual */}
-            <i className="bi bi-lightning-fill text-warning me-2"></i>
-            React - Lectura CUPS
+          <Navbar.Brand className="fw-bold text-primary d-flex align-items-center">
+            <i className="bi bi-lightning-charge-fill text-warning me-2 fs-3"></i>
+            <span className="text-body">
+              Graficos de CUPS <small className="text-muted fw-light">v1.0</small>
+            </span>
           </Navbar.Brand>
+
+          {/* Switch de Tema */}
+          <Button
+            variant={darkMode ? "outline-warning" : "outline-primary"}
+            onClick={() => setDarkMode(!darkMode)}
+            className="d-flex align-items-center"
+          >
+            <i className={`bi ${darkMode ? 'bi-sun-fill' : 'bi-moon-stars-fill'} `}></i>
+          </Button>
         </Container>
       </Navbar>
 
-      {/* Cuerpo Principal: Limitamos el ancho para mejorar la legibilidad en monitores grandes */}
-      <Container className="py-4">
-        <Row className="justify-content-center">
-          {/* Utilizamos Col lg={8} para que el contenido no se estire demasiado, 
-            manteniendo un "aire" elegante a los lados en pantallas de escritorio.
-          */}
-          <Col lg={8} md={10} sm={12}>
+      {/* Cuerpo Principal */}
+      <Container className="flex-grow-1 pb-5">
+        <Row className="g-4">
+          <Col lg={4}>
+            <Stack gap={4}>
+              <ImportadorCSV onUploadSuccess={handleUploadSuccess} />
+              <StatsSearch />
+            </Stack>
+          </Col>
 
-            {/* Módulo 1: Ingesta y validación de archivos CSV */}
-            <FileUpload />
-
-            {/* Módulo 2: Visualización de métricas y analítica por CUPS */}
-            <StatsDashboard />
-
+          <Col lg={8}>
+            {/* Pasamos darkMode como prop si necesitas ajustar colores de Chart.js internamente */}
+            <TablaLecturas key={refreshKey} />
           </Col>
         </Row>
       </Container>
 
-      {/* Footer simple (Opcional) */}
-      <footer className="text-center py-4 text-muted small">
-        &copy; {new Date().getFullYear()} Energy Analytics Dashboard - Stack FARM
+      {/* Footer */}
+      <footer className="bg-body border-top py-4 text-center text-muted mt-auto">
+        <Container>
+          <p className="mb-0 small">
+            &copy; 2026 <strong>Sergio Campos Delgado</strong> —
+            Hecho con MongoDB, FastAPI, React & Bootstrap
+          </p>
+
+          <a href="https://github.com/sergiocamposdelgado/" target="_blank" rel="noopener noreferrer" className="text-decoration-none text-muted me-2">
+            <i className="bi bi-github fs-4"></i>
+          </a>
+          <a href="https://www.linkedin.com/in/sergio-campos-delgado-95a222281/" target="_blank" rel="noopener noreferrer" className="text-decoration-none text-primary">
+            <i className="bi bi-linkedin fs-4"></i>
+          </a>
+        </Container>
       </footer>
     </div>
   );

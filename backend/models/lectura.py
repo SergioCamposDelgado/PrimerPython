@@ -20,7 +20,7 @@ class LecturaCSV(BaseModel):
 
     # consumo: Magnitud física en kilovatios hora (kWh).
     consumo: float = Field(
-        ..., description="Valor de energía activa consumida en el periodo."
+        ..., description="Valor de energía activa consumida en el periodo.", gt=0
     )
 
     # id_contador: Serial único del dispositivo físico de medida.
@@ -102,6 +102,10 @@ class LecturaUpdate(BaseModel):
     id_contador: Optional[int] = Field(None, gt=0)
     fecha: Optional[datetime] = Field(None)
 
-    model_config = ConfigDict(
-        json_schema_extra={"example": {"consumo": 160.20, "id_contador": 105}}
-    )
+    @field_validator("consumo", "id_contador", mode="before")
+    @classmethod
+    def prevent_nulls(cls, v, info):
+        if v is None:
+            # Si el campo viene explícitamente como null, lanzamos error
+            raise ValueError(f"El campo {info.field_name} no puede ser nulo")
+        return v
