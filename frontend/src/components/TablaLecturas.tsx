@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    Table, Pagination, Form, Row, Col, Button,
-    Badge, Spinner, Card, Modal
-} from 'react-bootstrap';
+    faList, faPlus, faPencil, faTrash, faSpinner,
+    faTriangleExclamation, faChevronLeft, faChevronRight,
+    faAnglesLeft, faAnglesRight
+} from '@fortawesome/free-solid-svg-icons';
 import { lecturaService } from '../api/services/lecturaService';
 import type { Lectura, LecturaFilters } from '../api/services/lecturaService';
 
 export const TablaLecturas: React.FC = () => {
-    // ESTADOS DE DATOS
+    // --- ESTADOS ---
     const [lecturas, setLecturas] = useState<Lectura[]>([]);
     const [totalRecords, setTotalRecords] = useState(0);
     const [loading, setLoading] = useState(false);
-
-    // ESTADOS DE PAGINACIÓN Y FILTROS
     const [currentPage, setCurrentPage] = useState(1);
     const [limit] = useState(10);
-    const [filtros, setFiltros] = useState<LecturaFilters>({
-        cups: '',
-        fecha_inicio: '',
-        fecha_fin: ''
-    });
+    const [filtros, setFiltros] = useState<LecturaFilters>({ cups: '', fecha_inicio: '', fecha_fin: '' });
 
-    // ESTADOS DE MODALES
+    // Modales
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedLectura, setSelectedLectura] = useState<Partial<Lectura>>({});
@@ -29,15 +25,13 @@ export const TablaLecturas: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // --- LÓGICA DE CARGA ---
+    // --- CARGA DE DATOS ---
     const cargarDatos = useCallback(async () => {
         setLoading(true);
         try {
             const skip = (currentPage - 1) * limit;
             const params: LecturaFilters = {
-                ...filtros,
-                skip,
-                limit,
+                ...filtros, skip, limit,
                 cups: filtros.cups || undefined,
                 fecha_inicio: filtros.fecha_inicio || undefined,
                 fecha_fin: filtros.fecha_fin || undefined
@@ -52,11 +46,9 @@ export const TablaLecturas: React.FC = () => {
         }
     }, [currentPage, limit, filtros]);
 
-    useEffect(() => {
-        cargarDatos();
-    }, [cargarDatos]);
+    useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
-    // --- MANEJADORES DE ACCIONES ---
+    // --- HANDLERS ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFiltros({ ...filtros, [e.target.name]: e.target.value });
     };
@@ -69,21 +61,14 @@ export const TablaLecturas: React.FC = () => {
 
     const handleOpenEdit = (lectura: Lectura) => {
         setModalMode('edit');
-        // Formateamos la fecha para el input datetime-local (YYYY-MM-DDTHH:mm)
         const fechaFormateada = new Date(lectura.fecha).toISOString().slice(0, 16);
         setSelectedLectura({ ...lectura, fecha: fechaFormateada });
         setShowModal(true);
     };
 
-    const handleOpenDelete = (lectura: Lectura) => {
-        setSelectedLectura(lectura);
-        setShowDeleteModal(true);
-    };
-
     const handleSave = async () => {
         setIsSaving(true);
-        setErrors({}); // Limpiamos errores previos
-
+        setErrors({});
         try {
             if (modalMode === 'create') {
                 await lecturaService.createLectura(selectedLectura as Lectura);
@@ -93,22 +78,14 @@ export const TablaLecturas: React.FC = () => {
             setShowModal(false);
             cargarDatos();
         } catch (error: any) {
-            if (error.response && error.response.status === 422) {
-                const validationErrors = error.response.data.detail;
+            if (error.response?.status === 422) {
                 const newErrors: Record<string, string> = {};
-
-                validationErrors.forEach((err: any) => {
-                    // Pydantic pone el nombre del campo en err.loc[1]
-                    const fieldName = err.loc[1] || 'general';
-                    newErrors[fieldName] = err.msg;
+                error.response.data.detail.forEach((err: any) => {
+                    newErrors[err.loc[1] || 'general'] = err.msg;
                 });
                 setErrors(newErrors);
-            } else {
-                alert("Error inesperado al guardar los datos");
             }
-        } finally {
-            setIsSaving(false);
-        }
+        } finally { setIsSaving(false); }
     };
 
     const handleDelete = async () => {
@@ -117,213 +94,165 @@ export const TablaLecturas: React.FC = () => {
             await lecturaService.deleteLectura(selectedLectura._id);
             setShowDeleteModal(false);
             cargarDatos();
-        } catch (error) {
-            alert("Error al eliminar");
-        }
+        } catch (error) { alert("Error al eliminar"); }
     };
 
     const totalPages = Math.ceil(totalRecords / limit);
 
     return (
-        <Card className="shadow-sm border-0">
-            <Card.Header className="py-3 d-flex justify-content-between align-items-center">
-                <h5 className="mb-0 fw-bold "><i className="bi bi-list me-2"></i> Listado de Consumos</h5>
-                <Button variant="primary" onClick={handleOpenCreate}>
-                    <i className="bi bi-plus-lg me-2"></i>Nueva Lectura
-                </Button>
-            </Card.Header>
-            <Card.Body>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden text-slate-900 dark:text-slate-100">
 
-                {/* PAGINACIÓN */}
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="text-muted small">
-                        Total de registros: <strong>{totalRecords}</strong>
+            {/* Header de la Tabla */}
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-800/50">
+                <h5 className="font-bold flex items-center gap-2">
+                    <FontAwesomeIcon icon={faList} className="text-blue-500" />
+                    Listado de Consumos
+                </h5>
+                <button
+                    onClick={handleOpenCreate}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                >
+                    <FontAwesomeIcon icon={faPlus} /> Nueva Lectura
+                </button>
+            </div>
+
+            <div className="p-6">
+                {/* Info y Paginación */}
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <div className="text-sm text-slate-500">
+                        Total: <span className="font-bold text-slate-800 dark:text-slate-200">{totalRecords}</span> registros
                     </div>
-                    {totalPages > 1 && (
 
-                        <Pagination>
-                            <Pagination.First disabled={currentPage === 1} onClick={() => setCurrentPage(1)} />
-                            <Pagination.Prev disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} />
-                            {/* Generamos un array de números alrededor de la página actual */}
+                    {totalPages > 1 && (
+                        <nav className="flex items-center gap-1">
+                            <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-2 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"><FontAwesomeIcon icon={faAnglesLeft} /></button>
+                            <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className="p-2 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"><FontAwesomeIcon icon={faChevronLeft} /></button>
+
                             {[currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
-                                .filter(page => page > 0 && page <= totalPages) // Solo páginas que existen
+                                .filter(page => page > 0 && page <= totalPages)
                                 .map(page => (
-                                    <Pagination.Item
+                                    <button
                                         key={page}
-                                        active={page === currentPage}
                                         onClick={() => setCurrentPage(page)}
+                                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${page === currentPage ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                                     >
                                         {page}
-                                    </Pagination.Item>
+                                    </button>
                                 ))
                             }
-                            <Pagination.Next disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} />
-                            <Pagination.Last disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)} />
-                        </Pagination>
 
+                            <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} className="p-2 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"><FontAwesomeIcon icon={faChevronRight} /></button>
+                            <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="p-2 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"><FontAwesomeIcon icon={faAnglesRight} /></button>
+                        </nav>
                     )}
                 </div>
 
-                {/* FILTROS */}
-                <Form className="mb-4 p-3 bg-body-tertiary rounded border-0" onSubmit={(e) => { e.preventDefault(); setCurrentPage(1); }} action="#">
-                    <Row className="g-3 align-items-end">
-                        <Col md={4}>
-                            <Form.Label className="small fw-bold">CUPS</Form.Label>
-                            <Form.Control
-                                name="cups"
-                                value={filtros.cups}
-                                onChange={handleInputChange}
-                                placeholder="Buscar por CUPS..."
-                            />
-                        </Col>
-                        <Col md={4}>
-                            <Form.Label className="small fw-bold">Desde</Form.Label>
-                            <Form.Control
-                                type="datetime-local"
-                                name="fecha_inicio"
-                                value={filtros.fecha_inicio}
-                                onChange={handleInputChange}
-                            />
-                        </Col>
-                        <Col md={4}>
-                            <Form.Label className="small fw-bold">Hasta</Form.Label>
-                            <Form.Control
-                                type="datetime-local"
-                                name="fecha_fin"
-                                value={filtros.fecha_fin}
-                                onChange={handleInputChange}
-                            />
-                        </Col>
-                    </Row>
-                </Form>
+                {/* Filtros */}
+                <form className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1 ml-1">CUPS</label>
+                        <input name="cups" value={filtros.cups} onChange={handleInputChange} placeholder="Buscar CUPS..." className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1 ml-1">Desde</label>
+                        <input type="datetime-local" name="fecha_inicio" value={filtros.fecha_inicio} onChange={handleInputChange} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1 ml-1">Hasta</label>
+                        <input type="datetime-local" name="fecha_fin" value={filtros.fecha_fin} onChange={handleInputChange} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none" />
+                    </div>
+                </form>
 
-
-                {/* TABLA */}
-                <div className="table-responsive">
-                    <Table striped hover className="align-middle">
+                {/* Tabla */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr>
-                                <th>CUPS</th>
-                                <th>Fecha</th>
-                                <th>Consumo</th>
-                                <th>Acciones</th>
+                            <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 text-sm">
+                                <th className="py-3 px-4 font-semibold uppercase tracking-wider">CUPS</th>
+                                <th className="py-3 px-4 font-semibold uppercase tracking-wider">Fecha</th>
+                                <th className="py-3 px-4 font-semibold uppercase tracking-wider">Consumo</th>
+                                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="table-group-divider">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {loading ? (
-                                <tr><td colSpan={4} className="text-center py-5"><Spinner animation="border" /></td></tr>
+                                <tr><td colSpan={4} className="py-20 text-center"><FontAwesomeIcon icon={faSpinner} spin size="2x" className="text-blue-500" /></td></tr>
                             ) : lecturas.map((item) => (
-                                <tr key={item._id}>
-                                    <td><code className="fw-bold">{item.cups}</code></td>
-                                    <td>{new Date(item.fecha).toLocaleString()}</td>
-                                    <td>
-                                        <Badge bg={item.consumo > 10 ? 'success' : (item.consumo > 5 ? 'warning' : 'danger')}>
+                                <tr key={item._id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                    <td className="py-3 px-4"><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-blue-600 dark:text-blue-400 font-bold">{item.cups}</code></td>
+                                    <td className="py-3 px-4 text-sm">{new Date(item.fecha).toLocaleString()}</td>
+                                    <td className="py-3 px-4">
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${item.consumo > 10 ? 'bg-green-100 text-green-700' : (item.consumo > 5 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')
+                                            }`}>
                                             {item.consumo.toFixed(3)} MWh
-                                        </Badge>
+                                        </span>
                                     </td>
-                                    <td>
-                                        <Button variant="outline-warning" size="sm" className="me-2" onClick={() => handleOpenEdit(item)}>
-                                            <i className="bi bi-pencil"></i>
-                                        </Button>
-                                        <Button variant="outline-danger" size="sm" onClick={() => handleOpenDelete(item)}>
-                                            <i className="bi bi-trash"></i>
-                                        </Button>
+                                    <td className="py-3 px-4 text-right space-x-2">
+                                        <button onClick={() => handleOpenEdit(item)} className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"><FontAwesomeIcon icon={faPencil} /></button>
+                                        <button onClick={() => { setSelectedLectura(item); setShowDeleteModal(true); }} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><FontAwesomeIcon icon={faTrash} /></button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
-                    </Table>
+                    </table>
                 </div>
+            </div>
 
-
-            </Card.Body>
-
-            {/* MODAL CREAR / EDITAR */}
-            <Modal show={showModal} onHide={() => { setShowModal(false); setErrors({}); }} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>{modalMode === 'create' ? 'Nueva Lectura' : 'Editar Lectura'}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form>
-                        {/* CUPS */}
-                        <Form.Group className="mb-3">
-                            <Form.Label>CUPS</Form.Label>
-                            <Form.Control
-                                value={selectedLectura.cups}
-                                isInvalid={!!errors.cups}
-                                onChange={(e) => setSelectedLectura({ ...selectedLectura, cups: e.target.value.toUpperCase() })}
-                                disabled={modalMode === 'edit'}
-                                placeholder="Ej: ES1234..."
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.cups}</Form.Control.Feedback>
-                        </Form.Group>
-
-                        {/* FECHA */}
-                        <Form.Group className="mb-3">
-                            <Form.Label>Fecha y Hora</Form.Label>
-                            <Form.Control
-                                type="datetime-local"
-                                value={selectedLectura.fecha}
-                                isInvalid={!!errors.fecha}
-                                onChange={(e) => setSelectedLectura({ ...selectedLectura, fecha: e.target.value })}
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.fecha}</Form.Control.Feedback>
-                        </Form.Group>
-
-                        {/* CONSUMO */}
-                        <Form.Group className="mb-3">
-                            <Form.Label>Consumo (MWh)</Form.Label>
-                            <Form.Control
-                                type="number"
-                                step="0.001"
-                                min="0"
-                                value={selectedLectura.consumo}
-                                isInvalid={!!errors.consumo}
-                                onChange={(e) => setSelectedLectura({ ...selectedLectura, consumo: parseFloat(e.target.value) })}
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.consumo}</Form.Control.Feedback>
-                        </Form.Group>
-
-                        {/* ID CONTADOR */}
-                        <Form.Group className="mb-3">
-                            <Form.Label>ID Contador</Form.Label>
-                            <Form.Control
-                                value={selectedLectura.id_contador || ''}
-                                isInvalid={!!errors.id_contador}
-                                onChange={(e) => setSelectedLectura({
-                                    ...selectedLectura,
-                                    id_contador: e.target.value
-                                })}
-                                disabled={modalMode === 'edit'}
-                            />
-                            <Form.Control.Feedback type="invalid">
-                                {errors.id_contador}
-                            </Form.Control.Feedback>
-                        </Form.Group>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
-                    <Button variant="primary" onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <Spinner size="sm" /> : 'Guardar Cambios'}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            {/* MODAL CREAR / EDITAR (Simulado con overlay de Tailwind) */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                            <h3 className="text-xl font-bold">{modalMode === 'create' ? 'Nueva Lectura' : 'Editar Lectura'}</h3>
+                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold mb-1">CUPS</label>
+                                <input disabled={modalMode === 'edit'} value={selectedLectura.cups} onChange={(e) => setSelectedLectura({ ...selectedLectura, cups: e.target.value.toUpperCase() })} className={`w-full bg-white dark:bg-slate-900 border rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 ${errors.cups ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'}`} />
+                                {errors.cups && <p className="text-red-500 text-xs mt-1">{errors.cups}</p>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold mb-1">Fecha y Hora</label>
+                                    <input type="datetime-local" value={selectedLectura.fecha} onChange={(e) => setSelectedLectura({ ...selectedLectura, fecha: e.target.value })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold mb-1">Consumo (MWh)</label>
+                                    <input type="number" step="0.001" value={selectedLectura.consumo} onChange={(e) => setSelectedLectura({ ...selectedLectura, consumo: parseFloat(e.target.value) })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold mb-1">ID Contador</label>
+                                <input disabled={modalMode === 'edit'} value={selectedLectura.id_contador || ''} onChange={(e) => setSelectedLectura({ ...selectedLectura, id_contador: e.target.value })} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none" />
+                            </div>
+                        </div>
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-700">
+                            <button onClick={() => setShowModal(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:underline">Cancelar</button>
+                            <button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-blue-500/30 disabled:opacity-50 transition-all flex items-center gap-2">
+                                {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Guardar Cambios'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL ELIMINAR */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered size="sm">
-                <Modal.Header closeButton>
-                    <Modal.Title>Confirmar Eliminación</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="text-center py-4">
-                    <i className="bi bi-exclamation-triangle text-danger fs-1"></i>
-                    <p className="mt-3">¿Estás seguro de eliminar esta lectura?</p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>No</Button>
-                        <Button variant="danger" onClick={handleDelete}>Sí, eliminar</Button>
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-8 shadow-2xl text-center border border-slate-200 dark:border-slate-700">
+                        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FontAwesomeIcon icon={faTriangleExclamation} size="2x" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-white">Confirmar Eliminación</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8">¿Estás seguro de que quieres eliminar esta lectura? Esta acción es irreversible.</p>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2 text-slate-500 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancelar</button>
+                            <button onClick={handleDelete} className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-lg shadow-red-500/30 transition-all">Eliminar</button>
+                        </div>
                     </div>
-                </Modal.Body>
-            </Modal>
-        </Card>
+                </div>
+            )}
+        </div>
     );
 };

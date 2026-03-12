@@ -1,5 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { Card, Form, Button, Spinner, Stack, Badge } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faFileImport,
+    faTrash,
+    faSpinner,
+    faCheckCircle,
+    faExclamationTriangle,
+    faCircleXmark,
+    faTriangleExclamation
+} from '@fortawesome/free-solid-svg-icons';
 import { lecturaService } from '../api/services/lecturaService';
 
 interface ErrorDetalle {
@@ -19,7 +28,6 @@ export const ImportadorCSV: React.FC<Props> = ({ onUploadSuccess }) => {
     const [stats, setStats] = useState<{ insertados: number; erroresCount: number; listaErrores: ErrorDetalle[] } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Resetear todo al seleccionar un archivo nuevo
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         setFile(selectedFile || null);
@@ -30,9 +38,8 @@ export const ImportadorCSV: React.FC<Props> = ({ onUploadSuccess }) => {
 
     const handleUpload = async () => {
         if (!file) return;
-
         setStatus('uploading');
-        setStats(null); // Limpiamos stats anteriores al empezar
+        setStats(null);
 
         try {
             const data = await lecturaService.uploadCSV(file);
@@ -62,72 +69,98 @@ export const ImportadorCSV: React.FC<Props> = ({ onUploadSuccess }) => {
     };
 
     return (
-        <Card className="shadow-sm mb-4 border-0">
-            <Card.Header className="bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                <h5 className="mb-0 font-weight-bold">
-                    <i className="bi bi-file-earmark-arrow-up-fill me-2"></i>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6">
+            {/* Header */}
+            <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
+                <h5 className="font-bold flex items-center gap-2">
+                    <FontAwesomeIcon icon={faFileImport} />
                     Gestión de Carga
                 </h5>
                 {status !== 'idle' && (
-                    <Button variant="outline-light" size="sm" onClick={handleClear}>
-                        <i className='bi bi-trash'></i> Limpiar
-                    </Button>
+                    <button
+                        onClick={handleClear}
+                        className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        <FontAwesomeIcon icon={faTrash} /> Limpiar
+                    </button>
                 )}
-            </Card.Header>
-            <Card.Body>
-                <Form.Group className="mb-3">
-                    <Form.Label className="small fw-bold text-muted">ARCHIVO CSV</Form.Label>
-                    <Form.Control
+            </div>
+
+            <div className="p-6">
+                <div className="mb-5">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                        Archivo CSV
+                    </label>
+                    <input
                         type="file"
                         accept=".csv"
                         onChange={handleFileSelect}
                         ref={fileInputRef}
                         disabled={status === 'uploading'}
-                        className="form-control-lg"
+                        className="w-full text-sm text-slate-500 dark:text-slate-400
+                            file:mr-4 file:py-2.5 file:px-4
+                            file:rounded-xl file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            dark:file:bg-blue-900/30 dark:file:text-blue-400
+                            hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50
+                            cursor-pointer disabled:opacity-50 transition-all"
                     />
-                </Form.Group>
+                </div>
 
-                <Button
-                    variant={status === 'error' ? "danger" : (stats && stats.insertados === 0 ? "warning" : "primary")}
-                    className="w-100 py-2 fw-bold"
+                <button
                     onClick={handleUpload}
                     disabled={!file || status === 'uploading'}
+                    className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2
+                        ${status === 'error' ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' :
+                            (stats && stats.insertados === 0 ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20')}
+                        disabled:opacity-50 disabled:shadow-none`}
                 >
                     {status === 'uploading' ? (
-                        <><Spinner animation="border" size="sm" className="me-2" />PROCESANDO...</>
+                        <><FontAwesomeIcon icon={faSpinner} spin /> PROCESANDO...</>
                     ) : (
                         status === 'success' ? 'VOLVER A CARGAR' : 'INICIAR CARGA'
                     )}
-                </Button>
+                </button>
 
-                <div className="mt-3">
+                {/* FEEDBACK DE RESULTADOS */}
+                <div className="mt-6 space-y-4">
                     {status === 'success' && stats && (
-                        <div className={`p-3 border-start border-4 rounded ${stats.insertados > 0 ? 'bg-light border-success' : 'bg-warning bg-opacity-10 border-warning'}`}>
+                        <div className={`p-4 rounded-2xl border-l-4 ${stats.insertados > 0 ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-500'}`}>
 
-                            <div className={stats.insertados > 0 ? "text-success fw-bold" : "text-warning fw-bold"}>
-                                {stats.insertados > 0 ? <><i className="bi bi-check-circle-fill"></i> Carga procesada </> : <><i className="bi bi-exclamation-triangle-fill"></i> No se pudo importar ningún dato </>}
+                            <div className="flex items-center gap-2 mb-3">
+                                <FontAwesomeIcon
+                                    icon={stats.insertados > 0 ? faCheckCircle : faExclamationTriangle}
+                                    className={stats.insertados > 0 ? 'text-emerald-500' : 'text-amber-500'}
+                                />
+                                <span className={`font-bold ${stats.insertados > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                                    {stats.insertados > 0 ? 'Carga procesada correctamente' : 'No se pudo importar ningún dato'}
+                                </span>
                             </div>
 
-                            <Stack direction="horizontal" gap={2} className="my-2">
-                                <Badge bg={stats.insertados > 0 ? "success" : "secondary"}>
+                            <div className="flex gap-2 mb-4">
+                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${stats.insertados > 0 ? 'bg-emerald-200/50 dark:bg-emerald-800/50 text-emerald-800 dark:text-emerald-200' : 'bg-slate-200 dark:bg-slate-700 text-slate-600'}`}>
                                     +{stats.insertados} Éxitos
-                                </Badge>
+                                </span>
                                 {stats.erroresCount > 0 && (
-                                    <Badge bg="danger">{stats.erroresCount} Errores</Badge>
+                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-md text-xs font-bold">
+                                        {stats.erroresCount} Errores
+                                    </span>
                                 )}
-                            </Stack>
+                            </div>
 
+                            {/* LISTA DE ERRORES */}
                             {stats.erroresCount > 0 && (
-                                <div className="mt-3">
-                                    <p className="small fw-bold text-muted mb-2 text-uppercase" style={{ fontSize: '0.7rem' }}>Detalle de incidencias:</p>
-                                    <div style={{ maxHeight: '250px', overflowY: 'auto', fontSize: '0.82rem' }}>
+                                <div className="mt-4">
+                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Detalle de incidencias:</p>
+                                    <div className="max-h-60 overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
                                         {stats.listaErrores.map((err, idx) => (
-                                            <div key={idx} className="mb-2 p-2 bg-white border rounded shadow-sm border-danger border-opacity-25">
-                                                <div className="d-flex justify-content-between align-items-center border-bottom pb-1 mb-1">
-                                                    <span className="badge bg-danger">Fila {err.fila}</span>
-                                                    <span className="text-muted font-monospace small">{err.cups}</span>
+                                            <div key={idx} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-red-100 dark:border-red-900/50 shadow-sm">
+                                                <div className="flex justify-between items-center mb-2 border-b border-slate-50 dark:border-slate-700 pb-2">
+                                                    <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm shadow-red-500/20">Fila {err.fila}</span>
+                                                    <code className="text-xs text-slate-500 dark:text-slate-400 font-mono">{err.cups}</code>
                                                 </div>
-                                                <ul className="mb-0 ps-3 text-danger">
+                                                <ul className="list-disc list-inside text-xs text-red-600 dark:text-red-400 space-y-1">
                                                     {err.detalles.map((d, i) => <li key={i}>{d}</li>)}
                                                 </ul>
                                             </div>
@@ -139,13 +172,16 @@ export const ImportadorCSV: React.FC<Props> = ({ onUploadSuccess }) => {
                     )}
 
                     {status === 'error' && (
-                        <div className="p-3 bg-light border-start border-danger border-4 rounded">
-                            <div className="text-danger fw-bold mb-1"><i className="bi bi-exclamation-triangle-fill"></i> Error Crítico</div>
-                            <small className="text-muted d-block">{message}</small>
+                        <div className="p-4 bg-red-50 dark:bg-red-900/10 border-l-4 border-red-500 rounded-2xl flex gap-3">
+                            <FontAwesomeIcon icon={faTriangleExclamation} className="text-red-500 mt-1" />
+                            <div>
+                                <p className="text-red-700 dark:text-red-400 font-bold text-sm mb-1">Error Crítico</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{message}</p>
+                            </div>
                         </div>
                     )}
                 </div>
-            </Card.Body>
-        </Card>
+            </div>
+        </div>
     );
 };
