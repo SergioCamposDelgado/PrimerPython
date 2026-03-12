@@ -1,4 +1,10 @@
 # backend/main.py
+"""Punto de entrada principal de la aplicación FARM Energy API.
+
+Este módulo inicializa la instancia de FastAPI, configura el ciclo de vida
+de las conexiones (Lifespan), establece las políticas de seguridad CORS
+y registra las rutas de la API bajo una estrategia de versionado.
+"""
 
 from contextlib import asynccontextmanager
 
@@ -9,28 +15,30 @@ from backend.api.v1.endpoints import lecturas
 from backend.db.mongodb import close_mongo_connection, connect_to_mongo
 
 
-# --- GESTIÓN DEL CICLO DE VIDA (LIFESPAN) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Orquestador del ciclo de vida de la aplicación (Eventos Start-up y Shutdown).
+    """Orquestador del ciclo de vida de la aplicación.
 
-    Este gestor asegura que la conexión a MongoDB mediante Motor se establezca
-    de forma asíncrona antes de que el servidor acepte peticiones. Al apagarse,
-    realiza un cierre 'graceful' (limpio) de los sockets, liberando recursos
-    en el clúster de base de datos y evitando conexiones huérfanas.
+    Gestiona los eventos de inicio (Start-up) y parada (Shutdown) del servidor.
+    Asegura que el pool de conexiones a MongoDB esté listo antes de recibir
+    tráfico y que se cierren los sockets de forma limpia al finalizar.
+
+    Args:
+        app: Instancia de la aplicación FastAPI.
+
+    Yields:
+        Mantiene el contexto activo durante la ejecución del servidor.
     """
     # [START-UP]: Conexión al motor asíncrono de MongoDB
     await connect_to_mongo()
 
-    yield  # La aplicación permanece activa y procesando peticiones en este punto
+    yield
 
-    # [SHUTDOWN]: Cierre de la conexión al finalizar el proceso del servidor
+    # [SHUTDOWN]: Cierre de la conexión al finalizar el proceso
     await close_mongo_connection()
 
 
 # --- INSTANCIACIÓN DE LA APLICACIÓN ---
-# Se define la instancia principal de FastAPI con metadatos para la documentación OpenAPI
 app = FastAPI(
     title="FARM Energy API",
     description=(
@@ -42,28 +50,25 @@ app = FastAPI(
 )
 
 # --- CONFIGURACIÓN DE SEGURIDAD (CORS) ---
-# El middleware CORS (Cross-Origin Resource Sharing) es crítico para la comunicación
-# entre dominios. Sin esto, el navegador bloquearía las peticiones del Frontend (Vite).
 app.add_middleware(
     CORSMiddleware,
-    # Orígenes permitidos: Se recomienda usar variables de entorno en producción
     allow_origins=["http://localhost:5173"],
     allow_credentials=True,
-    # Métodos permitidos (GET, POST, DELETE, etc.) y cabeceras de control (Headers)
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- REGISTRO DE RUTAS Y ESTRATEGIA DE VERSIONADO ---
-# Se utiliza un esquema de versionado /api/v1/ para garantizar la retrocompatibilidad.
-# Esto permite que nuevas versiones de la API coexistan con la actual en el futuro.
+# --- REGISTRO DE RUTAS ---
 app.include_router(
     lecturas.router, prefix="/api/v1", tags=["Módulo de Lecturas Energéticas"]
 )
 
 
-# --- ENDPOINT DE SALUD (HEALTH CHECK) ---
 @app.get("/health", tags=["Sistema"])
 async def health_check():
-    """Verifica la disponibilidad básica del servicio."""
+    """Verifica la disponibilidad básica del servicio.
+
+    Returns:
+        dict: Un objeto con el estado actual del servicio y su identificador.
+    """
     return {"status": "ok", "service": "FARM Energy API"}

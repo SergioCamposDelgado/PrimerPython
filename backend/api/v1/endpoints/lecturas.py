@@ -1,7 +1,12 @@
 # backend/api/v1/endpoints/lecturas.py
+"""Módulo de controladores para la API de lecturas energéticas.
+
+Define las rutas (endpoints) para la carga, consulta, gestión CRUD y analítica
+de datos. Actúa como el puente entre el transporte HTTP y la capa de servicios.
+"""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, File, HTTPException, Path, Query, UploadFile, status
 
@@ -13,6 +18,7 @@ from backend.services.energy import EnergyService
 # Inicialización del router para el módulo de lecturas energéticas
 router = APIRouter()
 
+
 # --- OPERACIONES DE CARGA MASIVA (CSV) ---
 
 
@@ -21,13 +27,24 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     summary="Carga y valida un archivo CSV de lecturas",
 )
-async def upload_csv(file: UploadFile = File(...)):
-    """
-    Orquestador para la ingesta masiva de datos:
+async def upload_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
+    """Orquestador para la ingesta masiva de datos mediante archivos CSV.
 
-    1. **Validación de Capa de Transporte**: Verifica extensión y tamaño del archivo.
+    Realiza un flujo de trabajo en tres pasos:
+    1. **Validación de Capa de Transporte**: Verifica extensión y límites de tamaño.
     2. **Procesamiento de Negocio**: Delega al Service el parsing y validación semántica.
-    3. **Persistencia**: Ejecuta el volcado a la base de datos tras asegurar la integridad.
+    3. **Persistencia**: Ejecuta el volcado masivo a MongoDB tras asegurar la integridad.
+
+    Args:
+        file: Objeto de archivo cargado mediante multipart/form-data.
+
+    Returns:
+        Un resumen del proceso con el número de registros insertados y lista de errores.
+
+    Raises:
+        HTTPException:
+            - 400: Formato inválido o errores de negocio.
+            - 413: Si el archivo excede el límite definido en configuración.
     """
     # Validación básica de formato
     if not file.filename or not file.filename.endswith(".csv"):
@@ -64,7 +81,6 @@ async def upload_csv(file: UploadFile = File(...)):
         }
 
     except (ValueError, ConnectionError) as e:
-        # Captura de errores de negocio o de infraestructura
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
@@ -86,12 +102,18 @@ async def list_lecturas(
     fecha_fin: Optional[datetime] = Query(
         None, description="Límite superior temporal (ISO 8601)"
     ),
-):
-    """
-    Punto de acceso para consumo de datos con soporte para:
-    - **Paginación**: Mediante parámetros skip/limit.
-    - **Filtro de Suministro**: Búsqueda por CUPS específico.
-    - **Filtrado Temporal**: Rangos de fecha dinámicos gestionados por el Service.
+) -> Dict[str, Any]:
+    """Punto de acceso para consumo de datos con soporte para paginación y filtros.
+
+    Args:
+        skip: Offset para la consulta.
+        limit: Cantidad de resultados por página.
+        cups: Filtro opcional por punto de suministro.
+        fecha_inicio: Filtro opcional de fecha desde.
+        fecha_fin: Filtro opcional de fecha hasta.
+
+    Returns:
+        Estructura paginada con el conteo total y los registros encontrados.
     """
     try:
         return await EnergyService.get_paginated_lecturas(
@@ -111,8 +133,20 @@ async def list_lecturas(
     "/{id}",
     summary="Obtiene una lectura específica por su ID único",
 )
-async def get_lectura(id: str = Path(..., description="ID hexadecimal de MongoDB")):
-    """Recupera un documento individual tras validar la integridad del identificador."""
+async def get_lectura(
+    id: str = Path(..., description="ID hexadecimal de MongoDB")
+) -> Dict[str, Any]:
+    """Recupera un documento individual tras validar el identificador.
+
+    Args:
+        id: El ID del documento a recuperar.
+
+    Returns:
+        El objeto de la lectura encontrada.
+
+    Raises:
+        HTTPException 404: Si el registro no existe o el ID no es válido.
+    """
     lectura = await EnergyService.get_lectura_by_id(id)
     if not lectura:
         raise HTTPException(
@@ -130,8 +164,15 @@ async def get_lectura(id: str = Path(..., description="ID hexadecimal de MongoDB
     status_code=status.HTTP_201_CREATED,
     summary="Registro manual de lectura individual",
 )
-async def create_lectura(lectura: LecturaCSV):
-    """Inserta una lectura validada por el modelo Pydantic en la persistencia."""
+async def create_lectura(lectura: LecturaCSV) -> Dict[str, Any]:
+    """Inserta una lectura individual validada por Pydantic.
+
+    Args:
+        lectura: Cuerpo de la petición con los datos de la lectura.
+
+    Returns:
+        El registro creado con su identificador de base de datos.
+    """
     try:
         return await EnergyService.create_single_lectura(lectura)
     except ConnectionError:
@@ -145,8 +186,16 @@ async def create_lectura(lectura: LecturaCSV):
     "/{id}",
     summary="Actualización parcial de una lectura",
 )
-async def update_lectura(id: str, lectura_data: LecturaUpdate):
-    """Aplica cambios atómicos a campos específicos de un registro existente."""
+async def update_lectura(id: str, lectura_data: LecturaUpdate) -> Dict[str, str]:
+    """Aplica cambios atómicos a campos específicos de un registro.
+
+    Args:
+        id: ID del registro a modificar.
+        lectura_data: Campos opcionales a actualizar.
+
+    Returns:
+        Mensaje de confirmación del estado de la operación.
+    """
     updated = await EnergyService.update_lectura_partial(id, lectura_data)
     if not updated:
         raise HTTPException(
@@ -161,8 +210,12 @@ async def update_lectura(id: str, lectura_data: LecturaUpdate):
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Eliminación de registro",
 )
-async def delete_lectura(id: str):
-    """Ejecuta el borrado físico del registro identificado por ID."""
+async def delete_lectura(id: str) -> None:
+    """Ejecuta el borrado físico de un registro identificado por ID.
+
+    Args:
+        id: ID del documento a eliminar.
+    """
     deleted = await EnergyService.delete_lectura_by_id(id)
     if not deleted:
         raise HTTPException(
@@ -183,12 +236,14 @@ async def get_stats_by_cups(
     cups: str = Path(
         ..., pattern=r"^[A-Z]{2}\d{16}[A-Z]{2}$", description="Código CUPS estándar"
     )
-):
-    """
-    Retorna analíticas procesadas en el motor de base de datos:
-    - Sumatorio de consumo.
-    - Media aritmética.
-    - Conteo total de registros.
+) -> Dict[str, Any]:
+    """Retorna analíticas procesadas (Consumo medio, total y conteo).
+
+    Args:
+        cups: Código CUPS a analizar (debe cumplir el patrón regex).
+
+    Returns:
+        Objeto con las métricas calculadas por el motor de base de datos.
     """
     try:
         stats = await EnergyService.get_cups_stats(cups)
