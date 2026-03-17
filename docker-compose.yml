@@ -13,7 +13,7 @@ services:
   # API Backend
   backend:
     build: ./backend
-    container_name: farm-backend
+    container_name: cups_back
     ports:
       - "8000:8000"
     environment:
@@ -24,7 +24,7 @@ services:
   # Aplicación Frontend
   frontend:
     build: ./frontend
-    container_name: farm-frontend
+    container_name: cups_front
     ports:
       - "80:80"
     environment:

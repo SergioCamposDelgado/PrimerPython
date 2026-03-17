@@ -8,9 +8,8 @@ ciclo de vida (Lifespan) de FastAPI.
 
 from typing import Optional
 
+from core.config import settings
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-
-from backend.core.config import settings
 
 
 class MongoDB:

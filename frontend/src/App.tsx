@@ -67,7 +67,7 @@ function App() {
       </nav>
 
       {/* Cuerpo Principal */}
-      <main className="container mx-auto px-4 py-8 flex-grow">
+      <main className="container mx-auto px-4 py-8 grow">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
           {/* Columna Izquierda (Acciones) */}
@@ -91,7 +91,7 @@ function App() {
         <div className="container mx-auto px-4 text-center">
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
             &copy; 2026 <strong className="text-slate-700 dark:text-slate-200">Sergio Campos Delgado</strong> —
-            Hecho con MongoDB, FastAPI, React & Tailwind v4
+            Hecho con MongoDB, FastAPI, React & TailwindCSS
           </p>
 
           <div className="flex justify-center gap-6">

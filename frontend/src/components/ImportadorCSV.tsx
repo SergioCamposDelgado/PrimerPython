@@ -6,7 +6,6 @@ import {
     faSpinner,
     faCheckCircle,
     faExclamationTriangle,
-    faCircleXmark,
     faTriangleExclamation
 } from '@fortawesome/free-solid-svg-icons';
 import { lecturaService } from '../api/services/lecturaService';

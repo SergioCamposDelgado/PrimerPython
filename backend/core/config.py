@@ -1,4 +1,6 @@
 # backend/core/config.py
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
     """
 
     # --- INFRAESTRUCTURA Y PERSISTENCIA ---
-    MONGO_URL: str = "mongodb://localhost:27017"
+    MONGO_URL: str = os.getenv("MONGO_DETAILS", "mongodb://localhost:27017")
     DATABASE_NAME: str = "reto_final"
 
     # --- POLÍTICAS DE SEGURIDAD Y GESTIÓN DE DATOS ---

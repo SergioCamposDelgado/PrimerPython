@@ -12,7 +12,7 @@ import { StatsSearch } from '../components/StatsSearch';
 // import { TablaLecturas } from '../components/TablaLecturas';
 
 export const Dashboard: React.FC = () => {
-    const [refreshKey, setRefreshKey] = useState(0);
+    const [, setRefreshKey] = useState(0);
     const [activeTab, setActiveTab] = useState<'listado' | 'graficos'>('listado');
 
     const handleUploadSuccess = useCallback(() => {
@@ -78,7 +78,7 @@ export const Dashboard: React.FC = () => {
                         </div>
 
                         {/* Contenido de las Pestañas */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden min-h-[400px]">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden min-h-100">
                             {activeTab === 'listado' ? (
                                 <div className="p-8">
                                     <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">

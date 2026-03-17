@@ -8,12 +8,11 @@ de datos. Actúa como el puente entre el transporte HTTP y la capa de servicios.
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from core.config import settings
+from db.mongodb import db_client
 from fastapi import APIRouter, File, HTTPException, Path, Query, UploadFile, status
-
-from backend.core.config import settings
-from backend.db.mongodb import db_client
-from backend.models.lectura import LecturaCSV, LecturaUpdate
-from backend.services.energy import EnergyService
+from models.lectura import LecturaCSV, LecturaUpdate
+from services.energy import EnergyService
 
 # Inicialización del router para el módulo de lecturas energéticas
 router = APIRouter()

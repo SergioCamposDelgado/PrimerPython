@@ -12,11 +12,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from bson import ObjectId
+from db.mongodb import db_client
+from models.lectura import LecturaCSV, LecturaUpdate
 from pydantic import ValidationError
-
-from backend.db.mongodb import db_client
-from backend.models.lectura import LecturaCSV, LecturaUpdate
-from backend.utils.serializers import decode_mongo
+from utils.serializers import decode_mongo
 
 
 class EnergyService:
